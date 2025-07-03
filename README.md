@@ -1,6 +1,14 @@
-# Introduction
+# PySnoo API - Extended Edition
 
-This is a Python 3.8+ module aiming to interact with the Snoo Smart Sleeper from happiestbaby.com API.
+This is an extended fork of the original [pysnoo](https://github.com/rado0x54/pysnoo) Python 3.8+ module for interacting with the Snoo Smart Sleeper and HappiestBaby API. This fork adds comprehensive journal functionality and updates authentication to work with the latest API changes.
+
+## Fork Acknowledgment
+
+This project builds upon the excellent work of the original pysnoo module by rado0x54. We've extended it with:
+- Complete baby journal/tracking functionality
+- AWS Cognito authentication support
+- Updated API endpoints for HappiestBaby app v2.6.1
+- Comprehensive CRUD operations for all journal types
 
 # [Homeassistant](https://home-assistant.io)
 [Homeassistant](https://home-assistant.io) has a [custom Snoo component](https://github.com/sanghviharshit/ha-snoo) leveraging this package.
@@ -10,26 +18,33 @@ This can be added into HACS as a custom repository.
 
 ## Installation
 
-```python
-pip install pysnoo
+Since this is an extended fork with new features not yet available in the original pysnoo package, you'll need to install directly from this repository:
+
+```bash
+# Install directly from GitHub
+pip install git+https://github.com/astaniforth/pysnooapi.git
+
+# Or clone and install locally for development
+git clone https://github.com/astaniforth/pysnooapi.git
+cd pysnooapi
+pip install -e .
 ```
 
-## Usage
+Note: The original `pysnoo` package can still be installed via `pip install pysnoo`, but it does not include the journal functionality or AWS Cognito authentication updates from this fork.
+
+## Basic Usage
 
 `pysnoo` starts within an [aiohttp](https://aiohttp.readthedocs.io/en/stable/)
 `ClientSession`:
 
 ```python
 import asyncio
-
 from aiohttp import ClientSession
-
 
 async def main() -> None:
     """Create the aiohttp session and run."""
     async with ClientSession() as websession:
       # YOUR CODE HERE
-
 
 asyncio.get_event_loop().run_until_complete(main())
 ```
@@ -38,9 +53,7 @@ To get all Snoo devices associated with an account:
 
 ```python
 import asyncio
-
 from aiohttp import ClientSession
-
 import pysnooapi
 
 async def main() -> None:
@@ -52,25 +65,162 @@ async def main() -> None:
       devices = snoo.devices
       # >>> {"serial_number123": <Device>, "serial_number456": <Device>}
 
-
 asyncio.get_event_loop().run_until_complete(main())
+```
+
+## Journal Functionality (NEW)
+
+This fork adds comprehensive baby journal tracking functionality matching the HappiestBaby mobile app:
+
+### Supported Journal Types
+- **Diaper Changes**: Track wet/dirty diapers with types (pee, poo)
+- **Feeding**: 
+  - Bottle feeding (breast milk or formula) with amounts in oz/ml
+  - Breast feeding with duration tracking per breast
+- **Growth Measurements**:
+  - Weight tracking (oz/grams)
+  - Height tracking (inches/cm)
+  - Head circumference (inches/cm)
+
+### Journal Examples
+
+```python
+import asyncio
+from datetime import datetime, timedelta
+from pysnooapi import login
+
+async def journal_examples():
+    """Examples of journal functionality."""
+    # Login
+    api = await login('<EMAIL>', '<PASSWORD>')
+    
+    # Get baby ID (if you have multiple babies, choose appropriately)
+    babies = await api.get_account()
+    baby_id = babies[0]['id']
+    
+    # Create a diaper entry
+    diaper_entry = await api.journal.create_diaper_entry(
+        baby_id=baby_id,
+        start_time=datetime.now(),
+        diaper_types=['pee', 'poo'],  # Use 'poo' not 'poop'
+        note="Normal diaper change"
+    )
+    
+    # Create a bottle feeding entry
+    feeding_entry = await api.journal.create_feeding_entry(
+        baby_id=baby_id,
+        start_time=datetime.now(),
+        feeding_type='bottlefeeding',
+        amount_imperial=4.0,  # 4 oz (automatically converts to ml)
+        milk_type='breastmilk',  # or 'formula'
+        note="Morning feeding"
+    )
+    
+    # Create a breast feeding entry
+    breast_entry = await api.journal.create_breast_feeding_entry(
+        baby_id=baby_id,
+        start_time=datetime.now(),
+        end_time=datetime.now() + timedelta(minutes=20),
+        left_duration=600,  # 10 minutes in seconds
+        right_duration=600,  # 10 minutes in seconds
+        last_used_breast='right',
+        note="Bedtime feeding"
+    )
+    
+    # Track weight
+    weight_entry = await api.journal.create_weight_entry(
+        baby_id=baby_id,
+        start_time=datetime.now(),
+        weight_imperial=10.5,  # 10.5 oz (automatically converts to grams)
+        note="Weekly weigh-in"
+    )
+    
+    # Track height
+    height_entry = await api.journal.create_height_entry(
+        baby_id=baby_id,
+        start_time=datetime.now(),
+        height_imperial=22.0,  # 22 inches (automatically converts to cm)
+        note="Monthly measurement"
+    )
+    
+    # Track head circumference
+    head_entry = await api.journal.create_head_entry(
+        baby_id=baby_id,
+        start_time=datetime.now(),
+        circumference_imperial=16.5,  # 16.5 inches (automatically converts to cm)
+        note="Pediatrician visit"
+    )
+    
+    # Read journal entries
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=7)
+    
+    diaper_entries = await api.journal.get_diaper_tracking(baby_id, start_date, end_date)
+    feeding_entries = await api.journal.get_feeding_tracking(baby_id, start_date, end_date, 'bottlefeeding')
+    weight_entries = await api.journal.get_weight_tracking(baby_id, start_date, end_date)
+    
+    # Update a journal entry (requires complete object)
+    if diaper_entries:
+        entry = diaper_entries[0]
+        await api.journal.update_journal_entry(
+            entry_id=entry['id'],
+            updates={
+                'type': entry['type'],
+                'startTime': entry['startTime'],
+                'babyId': entry['babyId'],
+                'userId': entry['userId'],
+                'data': entry['data'],
+                'note': 'Updated note'
+            }
+        )
+    
+    # Delete a journal entry
+    await api.journal.delete_journal_entry(entry['id'])
+
+asyncio.run(journal_examples())
 ```
 
 ## API Methods
 
 These are coroutines and need to be `await`ed – see `example.py` for examples.
 
+### Core Authentication & Device Methods
 * `login`: Login method that authenticates user and also updates device information
 * `authenticate`: Authenticate (or re-authenticate) to Snoo. Call this to
   re-authenticate immediately after changing username and/or password otherwise
   new username/password will only be used when token has to be refreshed.
 * `get_account`: Retrieve account details
 * `update_device_info`: Retrieve info and status for devices including account, baby, config and session
-* `get_session_for_account`: Retrieve session details for the account. Oddly, this is not linked to a device.
+* `get_session_for_account`: Retrieve session details for the account
 * `get_configs_for_device`: Retrieve config details for the devices
 * `get_baby_for_account`: Retrieve baby details associated with the account
 * `get_session_stats_avg_for_account`: Retrieve aggregated session stats for the week
 * `get_session_stats_daily_for_account`: Retrieve aggregated session stats for the given date
+
+### Journal Methods (NEW)
+All journal methods are available through `api.journal`:
+
+#### Read Operations
+* `get_diaper_tracking(baby_id, start_date, end_date)`: Get diaper entries
+* `get_feeding_tracking(baby_id, start_date, end_date, feeding_type)`: Get feeding entries
+* `get_weight_tracking(baby_id, start_date, end_date)`: Get weight entries
+* `get_height_tracking(baby_id, start_date, end_date)`: Get height entries
+* `get_head_tracking(baby_id, start_date, end_date)`: Get head circumference entries
+* `get_pumping_tracking(baby_id, start_date, end_date)`: Get pumping entries
+* `get_grouped_tracking(baby_id, start_date, end_date)`: Get all journal entries grouped
+* `get_last_journals(baby_id)`: Get the most recent journal entries
+
+#### Create Operations
+* `create_diaper_entry(baby_id, start_time, diaper_types, note=None, user_id=None)`
+* `create_feeding_entry(baby_id, start_time, feeding_type, amount_imperial=None, amount_metric=None, milk_type='breastmilk', note=None, user_id=None)`
+* `create_breast_feeding_entry(baby_id, start_time, end_time, left_duration=None, right_duration=None, last_used_breast='left', note=None, user_id=None)`
+* `create_weight_entry(baby_id, start_time, weight_imperial=None, weight_metric=None, note=None, user_id=None)`
+* `create_height_entry(baby_id, start_time, height_imperial=None, height_metric=None, note=None, user_id=None)`
+* `create_head_entry(baby_id, start_time, circumference_imperial=None, circumference_metric=None, note=None, user_id=None)`
+
+#### Update & Delete Operations
+* `update_journal_entry(entry_id, updates)`: Update an entry (requires complete object)
+* `delete_journal_entry(entry_id)`: Delete an entry
 
 ## Device Methods
 
@@ -134,226 +284,31 @@ All of the routines on the `SnooDevice` class are coroutines and need to be
     ]
 }
 ```
-## Config Properties
-### Example
-```
-{
-    "config": "lvl0",
-    "premieLock": false,
-    "weaning": false,
-    "whiteNoiseLevel": "lvl-1",
-    "motionLimiter": false,
-    "minimalLevel": "baseline",
-    "networkStatus": {
-        "lastPresence": "2021-01-01T11:02:35.160Z",
-        "lastProvisionSuccess": "2021-01-01T23:45:49.752Z",
-        "lastSSID": {
-            "name": "ABC",
-            "updatedAt": "2021-01-01T06:56:18.364Z"
-        },
-        "isOnline": true
-    }
-}
-```
 
-## Baby Properties
+## Important Notes
 
-### Example
-```
-{
-    "settings": {
-        "responsivenessLevel": "lvl0",
-        "minimalLevelVolume": "lvl-1",
-        "soothingLevelVolume": "lvl0",
-        "minimalLevel": "baseline",
-        "motionLimiter": false,
-        "weaning": false,
-        "carRideMode": true,
-        "offlineLock": false,
-        "daytimeStart": 8
-    },
-    "disabledLimiter": false,
-    "_id": "asfkhdsgfjsdkhkjdsg",
-    "pictures": [
-        {
-            "id": "sdfsdgkjhihr3r324_dsfh34tjh5kth5k",
-            "mime": "image/png",
-            "encoded": false,
-            "updatedAt": "2020-02-13T01:36:14.717Z"
-        }
-    ],
-    "createdAt": "2020-02-12T01:12:12.123Z",
-    "updatedAt": "2020-02-12T01:12:12.123Z",
-    "babyName": "Baby",
-    "birthDate": "2020-02-12T01:12:12.123Z",
-    "sex": "Female",
-    "updatedByUserAt": "2020-02-12T01:12:12.123Z"
-}
-```
-## Device Properties
+### Authentication
+This fork uses AWS Cognito authentication which is required for the latest HappiestBaby API. The module handles token refresh automatically.
 
-* `account`: Return account associated with device
-* `device_id`: Return the device ID (serial number)
-* `device`: Return the device details
-* `firmware_version`: Return the family in which this device lives
-* `name`: Return the device name
-* `is_online`: Return whether the device is online
-* `is_on`: Return whether the device is on (in motion)
-* `state`: Return the current state of the device (ONLINE, WEANING_BASELINE, BASELINE, LEVEL1, LEVEL2, LEVEL3 and LEVEL4)
-* `baby`: Return the baby details
-* `session`: Return the session details
-* `config`: Return the config details
-* `last_update`: Returns datetime when the device was last updated
+### Unit Conversions
+The journal methods automatically convert between imperial and metric units:
+- Weight: oz ↔ grams (1 oz = 28.3495 grams)
+- Liquid: oz ↔ ml (1 oz = 29.5735 ml)
+- Length: inches ↔ cm (1 inch = 2.54 cm)
 
-### Device Details
+### Journal Entry Updates
+Journal updates require sending the complete object, not just changed fields. Always include all required fields: `type`, `startTime`, `babyId`, `userId`, `data`, and optionally `note`.
 
-The device details from device properties
-
-#### Example
-```
-{
-    "serialNumber": "243545643656",
-    "createdAt": "2020-01-02T18:01:42.124Z",
-    "updatedAt": "2021-02-01T11:00:12.123Z",
-    "baby": "krgh2354543jhg6jh5gj",
-    "lastProvisionSuccess": "2020-12-01T01:45:49.752Z",
-    "firmwareUpdateDate": "2021-01-01T20:53:49.782Z",
-    "firmwareVersion": "v1.14.12",
-    "lastSSID": {
-        "name": "ABC",
-        "updatedAt": "2020-01-03T06:56:18.364Z"
-    },
-    "timezone": "America/Los_Angeles"
-}
-```
-
-## Session Stats Properties
-### Daily Session Aggregates
-#### Example
-```
-{
-    "levels": [
-        {
-            "sessionId": "1654751546",
-            "type": "asleep",
-            "startTime": "2021-01-31 08:00:00.000",
-            "stateDuration": 1279,
-            "isActive": false
-        },
-        {
-            "sessionId": "1681977280",
-            "type": "asleep",
-            "startTime": "2021-01-31 08:33:43.084",
-            "stateDuration": 63,
-            "isActive": false
-        },
-        ...
-    ],
-    "detailedLevels": [
-        {
-            "sessionId": "1654751546",
-            "level": "BASELINE",
-            "hold": false,
-            "settings": {
-                "responsivenessLevel": "lvl0",
-                "minimalLevelVolume": "lvl-1",
-                "soothingLevelVolume": "lvl0",
-                "minimalLevel": "baseline",
-                "motionLimiter": false,
-                "weaning": false,
-                "carRideMode": false
-            },
-            "isActive": false,
-            "levelDetails": {
-                "start": "2021-01-31 06:57:20.894",
-                "duration": 5038
-            },
-            "sessionDetails": {
-                "start": "2021-01-31 06:57:20.894",
-                "duration": 5038
-            },
-            "type": "asleep",
-            "startTime": "2021-01-31 08:00:00.000",
-            "stateDuration": 1279
-        },
-        ...
-    ],
-    "naps": 2,
-    "longestSleep": 10032,
-    "totalSleep": 18096,
-    "daySleep": 3434,
-    "nightSleep": 14662,
-    "nightWakings": 4,
-    "timezone": null
-}
-```
-
-### Weekly Session Aggregate
-#### Example
-```
-{
-    "totalSleepAVG": 18670,
-    "daySleepAVG": 3268,
-    "nightSleepAVG": 16802,
-    "longestSleepAVG": 9497,
-    "nightWakingsAVG": 6.286,
-    "days": {
-        "totalSleep": [
-            18096,
-            19966,
-            29070,
-            15408,
-            18880,
-            17171,
-            12096
-        ],
-        "daySleep": [
-            3434,
-            2012,
-            5463,
-            2161,
-            0,
-            0,
-            0
-        ],
-        "nightSleep": [
-            14662,
-            17954,
-            23607,
-            13247,
-            18880,
-            17171,
-            12096
-        ],
-        "longestSleep": [
-            10032,
-            10932,
-            11028,
-            9954,
-            8717,
-            8979,
-            6837
-        ],
-        "nightWakings": [
-            4,
-            7,
-            4,
-            7,
-            6,
-            7,
-            9
-        ]
-    }
-}
-```
+### Rate Limiting
+Be mindful of API rate limits. The module includes appropriate delays and error handling, but rapid consecutive requests may be throttled.
 
 # Acknowledgement
 
-The structure of this project is inspired by [pymyq](https://github.com/arraylabs/pymyq)
+The structure of this project is inspired by [pymyq](https://github.com/arraylabs/pymyq) and builds upon the original [pysnoo](https://github.com/rado0x54/pysnoo) module.
 
 # Disclaimer
 
 The code here is based off of an unsupported API from
 [happiestbaby.com](https://www.happiestbaby.com/) and is subject to change without
-notice. The authors claim no responsibility for damages to your garage door or
+notice. The authors claim no responsibility for damages to your Snoo or
 property by use of the code within.
