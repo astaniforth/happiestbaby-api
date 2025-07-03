@@ -1,8 +1,9 @@
-"""Comprehensive example showcasing the full breadth of HappiestBaby API features.
+"""Jupyter notebook-friendly version of the comprehensive HappiestBaby API example.
 
-This example demonstrates the extensive capabilities of this fork compared to the original pysnoo,
-including complete baby journal functionality, device management, and advanced features.
+Copy this entire cell into your Jupyter notebook and run it.
+Make sure to update the EMAIL and PASSWORD variables with your real credentials.
 """
+
 import asyncio
 import logging
 from datetime import datetime, timedelta
@@ -11,9 +12,7 @@ from aiohttp import ClientSession
 import happiestbaby_api
 from happiestbaby_api.errors import SnooError, AuthenticationError
 
-_LOGGER = logging.getLogger()
-
-# Example credentials - replace with your actual HappiestBaby account
+# 🔑 UPDATE THESE WITH YOUR REAL CREDENTIALS
 EMAIL = "your-email@example.com"
 PASSWORD = "your-password"
 
@@ -253,40 +252,6 @@ async def demonstrate_journal_system(api):
     except Exception as err:
         print(f"❌ Error in journal system demonstration: {err}")
 
-async def demonstrate_advanced_features(api):
-    """Demonstrate advanced features and capabilities."""
-    print_section_header("🚀 ADVANCED FEATURES & CAPABILITIES")
-    
-    print("🔄 AUTOMATIC UNIT CONVERSIONS")
-    print("   • Weight: oz ↔ grams (1 oz = 28.3495 grams)")
-    print("   • Liquid: oz ↔ ml (1 oz = 29.5735 ml)")
-    print("   • Length: inches ↔ cm (1 inch = 2.54 cm)")
-    print("   • Pass either unit, get both automatically stored")
-    
-    print("\n📅 ADVANCED DATE HANDLING")
-    print("   • Timezone-aware datetime processing")
-    print("   • Flexible date range queries")
-    print("   • ISO 8601 standard formatting")
-    print("   • Custom time period filtering")
-    
-    print("\n⚡ PERFORMANCE & RELIABILITY")
-    print("   • Async/await throughout for non-blocking operations")
-    print("   • Automatic request retry on transient failures")
-    print("   • Connection pooling for HTTP efficiency")
-    print("   • Built-in rate limiting and backoff strategies")
-    
-    print("\n🔒 SECURITY & AUTHENTICATION")
-    print("   • AWS Cognito enterprise-grade authentication")
-    print("   • Automatic token refresh handling")
-    print("   • Thread-safe concurrent operations")
-    print("   • Secure credential management")
-    
-    print("\n🛠️ DEVELOPER EXPERIENCE")
-    print("   • Complete type hints for IDE support")
-    print("   • Comprehensive error handling with specific exceptions")
-    print("   • Extensive logging for debugging")
-    print("   • Detailed documentation and examples")
-
 async def main():
     """Run the comprehensive example demonstrating all features."""
     print("🎉 COMPREHENSIVE HAPPIESTBABY API DEMONSTRATION")
@@ -310,9 +275,6 @@ async def main():
             # 3. Complete Journal System
             await demonstrate_journal_system(api)
             
-            # 4. Advanced Features Overview
-            await demonstrate_advanced_features(api)
-            
             print_section_header("✅ DEMONSTRATION COMPLETE")
             print("🎯 WHAT THIS FORK PROVIDES vs ORIGINAL:")
             print("   📱 Enhanced Device Management (from original)")
@@ -326,32 +288,16 @@ async def main():
             print("\n🚀 Ready for production use in baby tracking applications!")
             
         except SnooError as err:
-            _LOGGER.error("HappiestBaby API error: %s", err)
             print(f"\n❌ API Error: {err}")
         except Exception as err:
-            _LOGGER.error("Unexpected error: %s", err)
             print(f"\n❌ Unexpected error: {err}")
 
-if __name__ == "__main__":
-    print("⚠️  IMPORTANT: Update EMAIL and PASSWORD variables with your HappiestBaby credentials")
-    print("   This example uses placeholder credentials and will fail authentication without real ones.\n")
-    
-    # Run the comprehensive demonstration
-    asyncio.run(main())
+# 🚀 FOR JUPYTER NOTEBOOK: 
+# 1. Update EMAIL and PASSWORD variables above with your real HappiestBaby credentials
+# 2. Run this cell to define all functions
+# 3. Then run: await main()
 
-# For Jupyter Notebook users:
-# Instead of running this file directly, use the following in a Jupyter cell:
-#
-# import asyncio
-# from example import main
-# 
-# # Set your credentials first:
-# # EMAIL = "your-email@example.com" 
-# # PASSWORD = "your-password"
-#
-# # Then run:
-# await main()
-#
-# Or alternatively, if you get import issues, copy the main() function 
-# and other helper functions into your notebook and run:
-# await main()
+print("📋 JUPYTER NOTEBOOK INSTRUCTIONS:")
+print("1. Update EMAIL and PASSWORD variables above")
+print("2. Run this cell to define functions") 
+print("3. In the next cell, run: await main()")

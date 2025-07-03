@@ -67,8 +67,25 @@ async def main() -> None:
     async with ClientSession() as websession:
       # YOUR CODE HERE
 
-asyncio.get_event_loop().run_until_complete(main())
+asyncio.run(main())  # Python 3.7+
+# or: asyncio.get_event_loop().run_until_complete(main())  # Older Python
 ```
+
+### 📓 Jupyter Notebook Usage
+
+For Jupyter notebooks, async code requires special handling:
+
+```python
+# In Jupyter, use await directly (no asyncio.run needed)
+from aiohttp import ClientSession
+import happiestbaby_api
+
+async with ClientSession() as websession:
+    api = await happiestbaby_api.login('your-email@example.com', 'your-password', websession)
+    # Your code here...
+```
+
+**Quick Start for Jupyter**: Use `example_jupyter.py` - copy the entire file into a notebook cell, update credentials, and run `await main()`.
 
 To get all Snoo devices associated with an account:
 
