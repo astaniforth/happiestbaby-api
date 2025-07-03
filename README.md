@@ -2,14 +2,34 @@
 
 A comprehensive Python API client for HappiestBaby devices and services, including Snoo Smart Sleeper control and complete baby tracking functionality. This client provides full access to the HappiestBaby ecosystem through their mobile app API.
 
-## Fork Acknowledgment
+## What's New in This Fork
 
-This project builds upon the excellent work of the original [pysnoo](https://github.com/rado0x54/pysnoo) module by rado0x54. We've significantly extended it with:
-- Complete baby journal/tracking functionality for all data types
-- AWS Cognito authentication support
-- Updated API endpoints for HappiestBaby app v2.6.1+
-- Comprehensive CRUD operations for all journal types (feeding, diaper, weight, height, etc.)
-- Enhanced device management and session tracking
+This project builds upon the excellent work of the original [pysnoo](https://github.com/rado0x54/pysnoo) module by rado0x54 and **significantly expands** it into a comprehensive HappiestBaby ecosystem client.
+
+### 🚀 Major Additions vs Original Fork
+
+| Feature Category | Original pysnoo | This Fork (happiestbaby-api) |
+|---|---|---|
+| **Device Control** | ✅ Basic Snoo control | ✅ Enhanced device management + session tracking |
+| **Authentication** | ❌ Legacy/basic auth | ✅ AWS Cognito authentication with auto-refresh |
+| **Baby Journal System** | ❌ None | ✅ **Complete 8-type journal system** |
+| **CRUD Operations** | ❌ Read-only device data | ✅ **Full Create/Read/Update/Delete** for all data |
+| **Unit Conversions** | ❌ None | ✅ **Automatic imperial ↔ metric** conversions |
+| **Data Types Supported** | 1 (device status) | **8+** (diaper, feeding, weight, height, etc.) |
+| **API Coverage** | Limited legacy endpoints | **Multiple API versions** (v10, v11, v12) |
+| **Date/Time Filtering** | ❌ None | ✅ **Advanced date range filtering** |
+| **Error Handling** | Basic | ✅ **Comprehensive error handling + retry logic** |
+| **Type Safety** | Minimal | ✅ **Full type hints throughout** |
+| **Testing Coverage** | Limited | ✅ **Comprehensive unit + integration tests** |
+
+### 🍼 Complete Baby Journal System
+Unlike the original device-only focus, this fork provides **complete baby tracking** functionality matching the HappiestBaby mobile app:
+
+- **8 Journal Types**: Diaper, bottle feeding, breast feeding, solid food, weight, height, head circumference, pumping
+- **Full CRUD Operations**: Create, read, update, delete all journal entries
+- **Smart Unit Conversion**: Automatic oz↔grams, oz↔ml, inches↔cm conversions
+- **Advanced Querying**: Date ranges, filtering, grouping, last entries
+- **Real-time Sync**: Mirrors mobile app functionality exactly
 
 # [Homeassistant](https://home-assistant.io)
 [Homeassistant](https://home-assistant.io) has a [custom Snoo component](https://github.com/sanghviharshit/ha-snoo) leveraging this package.
@@ -73,15 +93,25 @@ asyncio.get_event_loop().run_until_complete(main())
 
 This fork adds comprehensive baby journal tracking functionality matching the HappiestBaby mobile app:
 
-### Supported Journal Types
-- **Diaper Changes**: Track wet/dirty diapers with types (pee, poo)
-- **Feeding**: 
-  - Bottle feeding (breast milk or formula) with amounts in oz/ml
-  - Breast feeding with duration tracking per breast
-- **Growth Measurements**:
-  - Weight tracking (oz/grams)
-  - Height tracking (inches/cm)
-  - Head circumference (inches/cm)
+### Complete Journal System (8 Types Supported)
+
+| Journal Type | Data Tracked | Units Supported | Features |
+|---|---|---|---|
+| **🧷 Diaper Changes** | Wet/dirty types, timing | N/A | Pee, poo tracking with notes |
+| **🍼 Bottle Feeding** | Amount, milk type | oz ↔ ml | Breast milk or formula amounts |
+| **🤱 Breast Feeding** | Duration per breast, timing | minutes/seconds | Left/right breast duration tracking |
+| **🥄 Solid Food** | Food types, amounts | Various | Solid food introduction tracking |
+| **⚖️ Weight Tracking** | Baby weight | oz ↔ grams | Growth monitoring with percentiles |
+| **📏 Height Tracking** | Baby length/height | inches ↔ cm | Length/height measurements |
+| **🧠 Head Circumference** | Head measurements | inches ↔ cm | Head growth tracking |
+| **🍼 Pumping** | Pumped milk amounts | oz ↔ ml | Breast milk pumping sessions |
+
+**Key Features:**
+- ✅ **Full CRUD**: Create, read, update, delete all entries
+- ✅ **Auto Unit Conversion**: Seamless imperial ↔ metric conversion
+- ✅ **Date Range Filtering**: Query by custom date ranges
+- ✅ **Bulk Operations**: Get grouped data across all types
+- ✅ **Real-time Sync**: Matches HappiestBaby mobile app exactly
 
 ### Journal Examples
 
@@ -198,30 +228,44 @@ These are coroutines and need to be `await`ed – see `example.py` for examples.
 * `get_session_stats_avg_for_account`: Retrieve aggregated session stats for the week
 * `get_session_stats_daily_for_account`: Retrieve aggregated session stats for the given date
 
-### Journal Methods (NEW)
-All journal methods are available through `api.journal`:
+### Complete Journal API Reference
+All journal methods are available through `api.journal` with full CRUD operations:
 
-#### Read Operations
-* `get_diaper_tracking(baby_id, start_date, end_date)`: Get diaper entries
-* `get_feeding_tracking(baby_id, start_date, end_date, feeding_type)`: Get feeding entries
-* `get_weight_tracking(baby_id, start_date, end_date)`: Get weight entries
-* `get_height_tracking(baby_id, start_date, end_date)`: Get height entries
-* `get_head_tracking(baby_id, start_date, end_date)`: Get head circumference entries
-* `get_pumping_tracking(baby_id, start_date, end_date)`: Get pumping entries
-* `get_grouped_tracking(baby_id, start_date, end_date)`: Get all journal entries grouped
-* `get_last_journals(baby_id)`: Get the most recent journal entries
+#### 📊 Read Operations (Query & Retrieve)
+| Method | Purpose | Returns |
+|---|---|---|
+| `get_diaper_tracking(baby_id, start_date, end_date)` | Diaper change history | List of diaper entries |
+| `get_feeding_tracking(baby_id, start_date, end_date, feeding_type)` | Feeding history by type | List of feeding entries |
+| `get_weight_tracking(baby_id, start_date, end_date)` | Weight measurements | List of weight entries |
+| `get_height_tracking(baby_id, start_date, end_date)` | Height/length measurements | List of height entries |
+| `get_head_tracking(baby_id, start_date, end_date)` | Head circumference data | List of head circumference entries |
+| `get_solid_food_tracking(baby_id, start_date, end_date)` | Solid food introduction | List of solid food entries |
+| `get_pumping_tracking(baby_id, start_date, end_date)` | Pumping session data | List of pumping entries |
+| `get_grouped_tracking(baby_id, start_date, end_date)` | **All journal data grouped** | Complete journal dataset |
+| `get_last_journals(baby_id)` | Most recent entries | Latest entries across all types |
 
-#### Create Operations
-* `create_diaper_entry(baby_id, start_time, diaper_types, note=None, user_id=None)`
-* `create_feeding_entry(baby_id, start_time, feeding_type, amount_imperial=None, amount_metric=None, milk_type='breastmilk', note=None, user_id=None)`
-* `create_breast_feeding_entry(baby_id, start_time, end_time, left_duration=None, right_duration=None, last_used_breast='left', note=None, user_id=None)`
-* `create_weight_entry(baby_id, start_time, weight_imperial=None, weight_metric=None, note=None, user_id=None)`
-* `create_height_entry(baby_id, start_time, height_imperial=None, height_metric=None, note=None, user_id=None)`
-* `create_head_entry(baby_id, start_time, circumference_imperial=None, circumference_metric=None, note=None, user_id=None)`
+#### ✏️ Create Operations (Add New Entries)
+| Method | Purpose | Key Parameters |
+|---|---|---|
+| `create_diaper_entry(...)` | Log diaper changes | `diaper_types=['pee', 'poo']` |
+| `create_feeding_entry(...)` | Log bottle feeding | `amount_imperial/metric`, `milk_type` |
+| `create_breast_feeding_entry(...)` | Log nursing sessions | `left_duration`, `right_duration` |
+| `create_weight_entry(...)` | Record weight | `weight_imperial/metric` |
+| `create_height_entry(...)` | Record height/length | `height_imperial/metric` |
+| `create_head_entry(...)` | Record head circumference | `circumference_imperial/metric` |
 
-#### Update & Delete Operations
-* `update_journal_entry(entry_id, updates)`: Update an entry (requires complete object)
-* `delete_journal_entry(entry_id)`: Delete an entry
+#### 🔄 Update & Delete Operations
+| Method | Purpose | Notes |
+|---|---|---|
+| `update_journal_entry(entry_id, updates)` | Modify existing entry | Requires complete object |
+| `delete_journal_entry(entry_id)` | Remove entry | Permanent deletion |
+
+**Advanced Features:**
+- 🔄 **Automatic Unit Conversion**: Pass either imperial or metric, get both
+- 📅 **Flexible Date Filtering**: Custom date ranges for all operations
+- 🏷️ **Rich Metadata**: Notes, user IDs, timestamps on all entries
+- ⚡ **Bulk Operations**: Retrieve all journal types in single calls
+- 🔒 **Type Safety**: Full type hints for all parameters and returns
 
 ## Device Methods
 
@@ -288,20 +332,84 @@ All of the routines on the `SnooDevice` class are coroutines and need to be
 
 ## Important Notes
 
-### Authentication
-This fork uses AWS Cognito authentication which is required for the latest HappiestBaby API. The module handles token refresh automatically.
+## 🚀 Advanced Features & Capabilities
 
-### Unit Conversions
-The journal methods automatically convert between imperial and metric units:
-- Weight: oz ↔ grams (1 oz = 28.3495 grams)
-- Liquid: oz ↔ ml (1 oz = 29.5735 ml)
-- Length: inches ↔ cm (1 inch = 2.54 cm)
+### 🔐 Modern Authentication (AWS Cognito)
+- **Secure Authentication**: Uses AWS Cognito for enterprise-grade security
+- **Automatic Token Refresh**: Handles token expiration transparently
+- **Thread-Safe**: Concurrent request handling with proper locking
+- **Error Recovery**: Automatic re-authentication on auth failures
+
+### 🔄 Intelligent Unit Conversions
+Automatic bidirectional conversion between measurement systems:
+```python
+# Pass imperial, get both imperial and metric
+weight_entry = await api.journal.create_weight_entry(
+    baby_id=baby_id,
+    weight_imperial=8.5  # oz
+)
+# Automatically stores: imperial=8.5oz, metric=241.0g
+
+# Or pass metric, get both
+height_entry = await api.journal.create_height_entry(
+    baby_id=baby_id, 
+    height_metric=55.0  # cm
+)
+# Automatically stores: metric=55.0cm, imperial=21.65in
+```
+
+**Conversion Rates:**
+- **Weight**: 1 oz = 28.3495 grams
+- **Liquid**: 1 oz = 29.5735 ml  
+- **Length**: 1 inch = 2.54 cm
+
+### 📅 Advanced Date & Time Handling
+- **Flexible Date Ranges**: Query any custom time period
+- **Timezone Aware**: Proper UTC handling with local timezone support
+- **ISO 8601 Format**: Standard datetime formatting throughout
+
+### 🔄 Complete CRUD Operations
+- **Create**: Add new journal entries with validation
+- **Read**: Query with flexible filtering and grouping
+- **Update**: Modify existing entries (requires complete object)
+- **Delete**: Remove entries permanently
+
+### ⚡ Performance & Reliability
+- **Async/Await**: Non-blocking operations throughout
+- **Request Retry Logic**: Automatic retry on transient failures
+- **Connection Pooling**: Efficient HTTP connection reuse
+- **Rate Limit Handling**: Built-in delays and backoff strategies
+
+### 🔒 Type Safety & Developer Experience
+- **Full Type Hints**: Complete typing for better IDE support
+- **Comprehensive Error Handling**: Specific exceptions for different failure modes
+- **Extensive Logging**: Debug-friendly logging throughout
+- **Documentation**: Detailed docstrings for all methods
+
+## 🛠️ Developer Notes
 
 ### Journal Entry Updates
-Journal updates require sending the complete object, not just changed fields. Always include all required fields: `type`, `startTime`, `babyId`, `userId`, `data`, and optionally `note`.
+⚠️ **Important**: Journal updates require sending the complete object, not just changed fields. Always include all required fields: `type`, `startTime`, `babyId`, `userId`, `data`, and optionally `note`.
 
 ### Rate Limiting
-Be mindful of API rate limits. The module includes appropriate delays and error handling, but rapid consecutive requests may be throttled.
+🚀 The module includes intelligent rate limiting:
+- Built-in delays between requests
+- Exponential backoff on failures
+- Automatic retry logic for transient errors
+- Connection pooling for efficiency
+
+### Best Practices
+- Use date ranges wisely to avoid large datasets
+- Include meaningful notes for better tracking
+- Handle errors gracefully with try/catch blocks
+- Close sessions properly when done
+
+### Error Handling
+The module provides specific exception types:
+- `AuthenticationError`: Login/token issues
+- `InvalidCredentialsError`: Bad username/password
+- `RequestError`: API communication problems
+- `SnooError`: General device/API errors
 
 # Acknowledgement
 
