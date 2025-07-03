@@ -56,23 +56,6 @@ This directory contains comprehensive examples showcasing the full capabilities 
 
 ---
 
-## 🔧 Additional Development Examples
-
-### 2. 🧪 `tests/test_account_fix.py` - **API Endpoint Testing**
-Demonstrates the v10/v11 API endpoint migrations and authentication fixes.
-
-### 3. 🔍 `tests/debug_babies.py` - **Data Structure Analysis**
-Debug tool for exploring baby data structures and field mappings.
-
-### 4. 🧪 `tests/integration/` - **Integration Test Suite**
-Comprehensive test examples for:
-- Authentication flows
-- Device management
-- Journal operations
-- Error handling
-
----
-
 ## 🚀 Quick Start Guide
 
 ### For Jupyter Notebooks (Recommended)
