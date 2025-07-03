@@ -412,11 +412,17 @@ class API:  # pylint: disable=too-many-instance-attributes
 
         _LOGGER.debug("Retrieving account information")
 
-        # Retrieve the account
+        # Retrieve the account - try v10 API first, fallback to legacy if needed
         account = None
-        _, accounts_resp = await self.request(
-            method="get", returns="json", url=f"{BASE_ENDPOINT}{ACCOUNT_URI}"
-        )
+        try:
+            _, accounts_resp = await self.request(
+                method="get", returns="json", url=f"{BASE_ENDPOINT}{ACCOUNT_V10_URI}"
+            )
+        except Exception as e:
+            _LOGGER.debug(f"V10 account endpoint failed, trying legacy: {e}")
+            _, accounts_resp = await self.request(
+                method="get", returns="json", url=f"{BASE_ENDPOINT}{ACCOUNT_URI}"
+            )
         if accounts_resp is not None:
             account_id = accounts_resp.get("userId")
             if account_id is not None:
@@ -433,11 +439,20 @@ class API:  # pylint: disable=too-many-instance-attributes
 
         _LOGGER.debug(f"Retrieving devices for account {self.account['givenName']}")
 
-        _, devices_resp = await self.request(
-            method="get",
-            returns="json",
-            url=f"{BASE_ENDPOINT}{DEVICES_URI}",
-        )
+        # Try v11 devices endpoint first, fallback to legacy if needed
+        try:
+            _, devices_resp = await self.request(
+                method="get",
+                returns="json",
+                url=f"{BASE_ENDPOINT}{DEVICES_V11_URI}",
+            )
+        except Exception as e:
+            _LOGGER.debug(f"V11 devices endpoint failed, trying legacy: {e}")
+            _, devices_resp = await self.request(
+                method="get",
+                returns="json",
+                url=f"{BASE_ENDPOINT}{DEVICES_URI}",
+            )
 
         device_state_update_timestmp = datetime.now(UTC)
         if devices_resp is not None:
@@ -501,18 +516,26 @@ class API:  # pylint: disable=too-many-instance-attributes
 
         _LOGGER.debug(f"Retrieving baby details for account {self.account['givenName']}")
         baby = None
-        _, baby_resp = await self.request(
-            method="get",
-            returns="json",
-            url=f"{BASE_ENDPOINT}{BABY_URI}",
-        )
-
-        if baby_resp is not None:
-            baby = baby_resp
-        else:
-            _LOGGER.debug(
-                f"No baby found for account {self.account['givenName']}"
+        
+        # Try v10 babies endpoint first, fallback to legacy if needed
+        try:
+            babies_resp = await self.get_babies_v10()
+            if babies_resp and len(babies_resp) > 0:
+                baby = babies_resp[0]  # Return first baby for backward compatibility
+            else:
+                _LOGGER.debug(f"No babies found using v10 API for account {self.account['givenName']}")
+        except Exception as e:
+            _LOGGER.debug(f"V10 babies endpoint failed, trying legacy: {e}")
+            _, baby_resp = await self.request(
+                method="get",
+                returns="json",
+                url=f"{BASE_ENDPOINT}{BABY_URI}",
             )
+            if baby_resp is not None:
+                baby = baby_resp
+            else:
+                _LOGGER.debug(f"No baby found for account {self.account['givenName']}")
+        
         return baby
 
     async def get_babies_v10(self) -> Optional[List[Dict]]:
@@ -524,6 +547,10 @@ class API:  # pylint: disable=too-many-instance-attributes
             url=f"{BASE_ENDPOINT}{BABIES_URI}",
         )
         return babies_resp
+
+    async def get_babies(self) -> Optional[List[Dict]]:
+        """Get babies (convenience method that uses v10 API)."""
+        return await self.get_babies_v10()
 
     async def get_account_v10(self) -> Optional[Dict]:
         """Get account info using v10 API endpoint."""
