@@ -4,8 +4,8 @@ import logging
 
 from aiohttp import ClientSession
 
-import pysnooapi
-from pysnooapi.errors import SnooError
+import happiestbaby_api
+from happiestbaby_api.errors import SnooError
 
 _LOGGER = logging.getLogger()
 
@@ -32,7 +32,7 @@ async def main() -> None:
         try:
             # Create an API object:
             print(f"{EMAIL} {PASSWORD}")
-            api = await pysnoo.login(EMAIL, PASSWORD, websession)
+            api = await happiestbaby_api.login(EMAIL, PASSWORD, websession)
             print(f"Account ID: {api.account.get('userId')}")
             print(f"Account Name: {api.account.get('givenName')}")
             print(f"Devices: {len(api.devices)}")

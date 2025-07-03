@@ -20,7 +20,7 @@ pytest-mock = "*"
 aiohttp = ">=3.7"
 ciso8601 = ">=2.3.0"
 pytz = ">=2021.1"
-pysnooapi = {file = ".", editable = true}
+happiestbaby-api = {file = ".", editable = true}
 
 [requires]
 python_version = "3.8"

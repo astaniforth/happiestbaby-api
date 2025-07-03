@@ -4,12 +4,12 @@ init:
 	pipenv install --dev
 
 lint:
-	pipenv run flake8 pysnooapi
-	pipenv run pydocstyle pysnooapi
-	pipenv run pylint pysnooapi
+	pipenv run flake8 happiestbaby_api
+	pipenv run pydocstyle happiestbaby_api
+	pipenv run pylint happiestbaby_api
 
 typing:
-	pipenv run mypy --ignore-missing-imports pysnooapi
+	pipenv run mypy --ignore-missing-imports happiestbaby_api
 
 test:
 	pipenv run pytest
@@ -24,10 +24,10 @@ test-no-integration:
 	pipenv run pytest -m "not integration" -v
 
 test-coverage:
-	pipenv run pytest --cov=pysnooapi --cov-report=html --cov-report=term-missing
+	pipenv run pytest --cov=happiestbaby_api --cov-report=html --cov-report=term-missing
 
 test-coverage-unit:
-	pipenv run pytest tests/unit --cov=pysnooapi --cov-report=html --cov-report=term-missing
+	pipenv run pytest tests/unit --cov=happiestbaby_api --cov-report=html --cov-report=term-missing
 
 test-fast:
 	pipenv run pytest -m "not slow and not integration" -v

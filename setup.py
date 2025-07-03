@@ -14,17 +14,17 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command  # type: ignore
 
 # Package meta-data.
-NAME = 'pysnooapi'
-DESCRIPTION = 'Python package for controlling Snoo Smart Sleepers from happiestbaby.com'
-URL = 'https://github.com/sanghviharshit/pysnoo'
-EMAIL = 'sanghvi.harshit@gmail.com'
-AUTHOR = 'Harshit Sanghvi'
+NAME = 'happiestbaby-api'
+DESCRIPTION = 'Python API client for HappiestBaby devices and baby tracking - includes Snoo Smart Sleeper control and comprehensive journal functionality'
+URL = 'https://github.com/astaniforth/happiestbaby-api'
+EMAIL = 'andrew.staniforth@gmail.com'
+AUTHOR = 'Andrew Staniforth'
 REQUIRES_PYTHON = '>=3.8'
 VERSION = None
 
 # What packages are required for this module to be executed?
 REQUIRED = [  # type: ignore
-    'aiohttp', 'pytz'
+    'aiohttp>=3.7', 'pytz>=2021.1', 'ciso8601>=2.3.0'
 ]
 
 # The rest you shouldn't have to touch too much :)
@@ -42,8 +42,9 @@ with io.open(os.path.join(HERE, 'README.md'), encoding='utf-8') as f:
 
 # Load the package's __version__.py module as a dictionary.
 ABOUT = {}  # type: ignore
+PACKAGE_NAME = 'happiestbaby_api'  # Package directory name (with underscore)
 if not VERSION:
-    with open(os.path.join(HERE, NAME, '__version__.py')) as f:
+    with open(os.path.join(HERE, PACKAGE_NAME, '__version__.py')) as f:
         exec(f.read(), ABOUT)  # pylint: disable=exec-used
 else:
     ABOUT['__version__'] = VERSION

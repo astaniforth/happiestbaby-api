@@ -9,7 +9,7 @@ baby activities like feeding, diaper changes, and growth measurements.
 import asyncio
 import os
 from datetime import datetime, timedelta
-from pysnooapi import login, JOURNAL_TYPES
+from happiestbaby_api import login, JOURNAL_TYPES
 
 async def main():
     """Example of using journal functionality."""

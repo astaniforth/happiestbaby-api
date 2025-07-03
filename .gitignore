@@ -7,3 +7,66 @@ __pycache__/
 venv*/
 build/*
 dist/*
+CLAUDE.md
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Test credentials (contains sensitive data)
+tests/test_credentials.py
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+
+# Analysis and documentation files
+new_auth_analysis.md
+cognito_auth_analysis.md
+authentication_analysis.md
+JOURNAL_FEATURES.md
+TESTING.md
+
+# Python compiled files
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Distribution / packaging
+*.egg-info/
+eggs/
+.eggs/
+*.egg
+
+# Debug and test scripts in root directory
+debug_*.py
+test_*.py
+analyze_*.py
+get_*.py
+simple_*.py
+comprehensive_*.py
+final_*.py
+tests/
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+*.log
+
+# Local test data
+test_data/
+temp/
+tmp/
+
+CLAUDE.md
+
+*.ipynb

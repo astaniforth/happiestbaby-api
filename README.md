@@ -1,14 +1,15 @@
-# PySnoo API - Extended Edition
+# HappiestBaby API Client
 
-This is an extended fork of the original [pysnoo](https://github.com/rado0x54/pysnoo) Python 3.8+ module for interacting with the Snoo Smart Sleeper and HappiestBaby API. This fork adds comprehensive journal functionality and updates authentication to work with the latest API changes.
+A comprehensive Python API client for HappiestBaby devices and services, including Snoo Smart Sleeper control and complete baby tracking functionality. This client provides full access to the HappiestBaby ecosystem through their mobile app API.
 
 ## Fork Acknowledgment
 
-This project builds upon the excellent work of the original pysnoo module by rado0x54. We've extended it with:
-- Complete baby journal/tracking functionality
+This project builds upon the excellent work of the original [pysnoo](https://github.com/rado0x54/pysnoo) module by rado0x54. We've significantly extended it with:
+- Complete baby journal/tracking functionality for all data types
 - AWS Cognito authentication support
-- Updated API endpoints for HappiestBaby app v2.6.1
-- Comprehensive CRUD operations for all journal types
+- Updated API endpoints for HappiestBaby app v2.6.1+
+- Comprehensive CRUD operations for all journal types (feeding, diaper, weight, height, etc.)
+- Enhanced device management and session tracking
 
 # [Homeassistant](https://home-assistant.io)
 [Homeassistant](https://home-assistant.io) has a [custom Snoo component](https://github.com/sanghviharshit/ha-snoo) leveraging this package.
@@ -18,23 +19,23 @@ This can be added into HACS as a custom repository.
 
 ## Installation
 
-Since this is an extended fork with new features not yet available in the original pysnoo package, you'll need to install directly from this repository:
+This comprehensive HappiestBaby API client can be installed directly from this repository:
 
 ```bash
 # Install directly from GitHub
-pip install git+https://github.com/astaniforth/pysnooapi.git
+pip install git+https://github.com/astaniforth/happiestbaby-api.git
 
 # Or clone and install locally for development
-git clone https://github.com/astaniforth/pysnooapi.git
-cd pysnooapi
+git clone https://github.com/astaniforth/happiestbaby-api.git
+cd happiestbaby-api
 pip install -e .
 ```
 
-Note: The original `pysnoo` package can still be installed via `pip install pysnoo`, but it does not include the journal functionality or AWS Cognito authentication updates from this fork.
+Note: This package replaces and extends the original `pysnoo` package with comprehensive journal functionality and updated authentication.
 
 ## Basic Usage
 
-`pysnoo` starts within an [aiohttp](https://aiohttp.readthedocs.io/en/stable/)
+`happiestbaby_api` starts within an [aiohttp](https://aiohttp.readthedocs.io/en/stable/)
 `ClientSession`:
 
 ```python
@@ -54,12 +55,12 @@ To get all Snoo devices associated with an account:
 ```python
 import asyncio
 from aiohttp import ClientSession
-import pysnooapi
+import happiestbaby_api
 
 async def main() -> None:
     """Create the aiohttp session and run."""
     async with ClientSession() as websession:
-      snoo = await pysnoo.login('<EMAIL>', '<PASSWORD>', websession)
+      snoo = await happiestbaby_api.login('<EMAIL>', '<PASSWORD>', websession)
 
       # Returns snoo devices
       devices = snoo.devices
@@ -87,7 +88,7 @@ This fork adds comprehensive baby journal tracking functionality matching the Ha
 ```python
 import asyncio
 from datetime import datetime, timedelta
-from pysnooapi import login
+from happiestbaby_api import login
 
 async def journal_examples():
     """Examples of journal functionality."""
