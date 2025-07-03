@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class SnooDevice:
     """Define a snoo device."""
 
@@ -28,11 +29,11 @@ class SnooDevice:
     @property
     def is_online(self) -> bool:
         """Return if device is online"""
-        return self._config.get("networkStatus").get("isOnline") if self._config != None else False
+        return self._config.get("networkStatus").get("isOnline") if self._config is not None else False
 
     @property
     def is_on(self) -> bool:
-        return self._session.get("startTime") != None and self._session.get("endTime") == None
+        return self._session.get("startTime") is not None and self._session.get("endTime") is None
 
     @property
     def last_update(self) -> datetime:
@@ -69,7 +70,7 @@ class SnooDevice:
         """Returns the state of the device
            The API returns ONLINE, WEANING_BASELINE, BASELINE, LEVEL1, LEVEL2, LEVEL3 and LEVEL4.
         """
-        if self._session.get("startTime") != None and self._session.get("endTime") == None:
+        if self._session.get("startTime") is not None and self._session.get("endTime") is None:
             return self._session.get("levels")[-1].get("level")
         else:
             return "ONLINE" if self.is_online else "OFFLINE"

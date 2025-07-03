@@ -1,6 +1,7 @@
 [[source]]
 url = "https://pypi.python.org/simple"
 verify_ssl = true
+name = "pypi"
 
 [dev-packages]
 "flake8" = "*"
@@ -8,6 +9,18 @@ mypy = "*"
 pydocstyle = "*"
 pylint = "*"
 twine = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-timeout = "*"
+pytest-asyncio = "*"
+aioresponses = "*"
+pytest-mock = "*"
 
 [packages]
-aiohttp = "*"
+aiohttp = ">=3.7"
+ciso8601 = ">=2.3.0"
+pytz = ">=2021.1"
+pysnooapi = {file = ".", editable = true}
+
+[requires]
+python_version = "3.8"

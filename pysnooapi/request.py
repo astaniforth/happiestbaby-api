@@ -2,7 +2,7 @@
 import asyncio
 import logging
 from json import JSONDecodeError
-from typing import Tuple
+from typing import Tuple, Optional, Dict, Any
 
 from aiohttp import ClientSession, ClientResponse
 from aiohttp.client_exceptions import ClientError, ClientResponseError
@@ -19,7 +19,7 @@ DEFAULT_REQUEST_RETRIES = 5
 class SnooRequest:  # pylint: disable=too-many-instance-attributes
     """Define a class to handle requests to Snoo"""
 
-    def __init__(self, websession: ClientSession = None) -> None:
+    def __init__(self, websession: Optional[ClientSession] = None) -> None:
         self._websession = websession or ClientSession()
 
     @staticmethod
@@ -27,16 +27,16 @@ class SnooRequest:  # pylint: disable=too-many-instance-attributes
         method: str,
         url: str,
         websession: ClientSession,
-        headers: dict = None,
-        params: dict = None,
-        data: dict = None,
-        json: dict = None,
+        headers: Optional[Dict[Any, Any]] = None,
+        params: Optional[Dict[Any, Any]] = None,
+        data: Optional[Dict[Any, Any]] = None,
+        json: Optional[Dict[Any, Any]] = None,
         allow_redirects: bool = False,
     ) -> ClientResponse:
 
         attempt = 0
-        resp_exc = None
-        last_status = ""
+        resp_exc: Optional[Exception] = None
+        last_status: Any = ""
         last_error = ""
         while attempt < DEFAULT_REQUEST_RETRIES:
             if attempt != 0:
@@ -82,19 +82,22 @@ class SnooRequest:  # pylint: disable=too-many-instance-attributes
                 last_error = str(err)
                 resp_exc = err
 
-        raise resp_exc
+        if resp_exc:
+            raise resp_exc
+        else:
+            raise RequestError("All request attempts failed")
 
     async def request_json(
         self,
         method: str,
         url: str,
-        websession: ClientSession = None,
-        headers: dict = None,
-        params: dict = None,
-        data: dict = None,
-        json: dict = None,
+        websession: Optional[ClientSession] = None,
+        headers: Optional[Dict[Any, Any]] = None,
+        params: Optional[Dict[Any, Any]] = None,
+        data: Optional[Dict[Any, Any]] = None,
+        json: Optional[Dict[Any, Any]] = None,
         allow_redirects: bool = False,
-    ) -> Tuple[ClientResponse, dict]:
+    ) -> Tuple[ClientResponse, Dict[Any, Any]]:
 
         websession = websession or self._websession
 
@@ -125,11 +128,11 @@ class SnooRequest:  # pylint: disable=too-many-instance-attributes
         self,
         method: str,
         url: str,
-        websession: ClientSession = None,
-        headers: dict = None,
-        params: dict = None,
-        data: dict = None,
-        json: dict = None,
+        websession: Optional[ClientSession] = None,
+        headers: Optional[Dict[Any, Any]] = None,
+        params: Optional[Dict[Any, Any]] = None,
+        data: Optional[Dict[Any, Any]] = None,
+        json: Optional[Dict[Any, Any]] = None,
         allow_redirects: bool = False,
     ) -> Tuple[ClientResponse, None]:
 

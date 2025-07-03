@@ -2,25 +2,32 @@
 import asyncio
 import logging
 import json
-from datetime import datetime, timedelta
-from typing import Dict, Optional, Union, Tuple
+from datetime import datetime, timedelta, UTC
+from typing import Dict, Optional, Union, Tuple, List, Any
 
 from aiohttp import ClientSession, ClientResponse
 from aiohttp.client_exceptions import ClientError, ClientResponseError
 
 from .const import (
-  BASE_ENDPOINT,
-  LOGIN_URI,
-  REFRESH_URI,
-  DEVICES_URI,
-  BABY_URI,
-  DEVICE_CONFIGS_URI,
-  ACCOUNT_URI,
-  SESSION_URI,
-  SESSION_STATS_DAILY_URI,
-  SESSION_STATS_AVG_URI
+    BASE_ENDPOINT,
+    COGNITO_ENDPOINT,
+    COGNITO_CLIENT_ID,
+    REFRESH_URI,
+    DEVICES_URI,
+    BABY_URI,
+    DEVICE_CONFIGS_URI,
+    ACCOUNT_URI,
+    SESSION_URI,
+    SESSION_STATS_DAILY_URI,
+    SESSION_STATS_AVG_URI,
+    BABIES_URI,
+    ACCOUNT_V10_URI,
+    DEVICES_V11_URI,
+    SESSION_LAST_V10_URI,
+    SESSION_DAILY_V11_URI
 )
 from .device import SnooDevice
+from .journal import JournalManager
 from .errors import AuthenticationError, InvalidCredentialsError, RequestError
 from .request import SnooRequest, REQUEST_METHODS
 
@@ -36,7 +43,7 @@ class API:  # pylint: disable=too-many-instance-attributes
     """Define a class for interacting with the Snoo API."""
 
     def __init__(
-        self, username: str, password: str, websession: ClientSession = None
+        self, username: str, password: str, websession: Optional[ClientSession] = None
     ) -> None:
         """Initialize."""
         self.__credentials = {"username": username, "password": password}
@@ -50,12 +57,13 @@ class API:  # pylint: disable=too-many-instance-attributes
             None,
             None,
             None
-        )  # type: Tuple[Optional[str], Optional[datetime], Optional[datetime]]
+        )  # type: Tuple[Optional[str], Optional[str], Optional[datetime], Optional[datetime]]
 
         self.account = None  # type: Dict
-        self.baby = None # type: Dict
+        self.baby = None  # type: Dict
         self.devices = {}  # type: Dict[str, SnooDevice]
         self.last_state_update = None  # type: Optional[datetime]
+        self.journal = JournalManager(self)  # type: JournalManager
 
     @property
     def username(self) -> str:
@@ -80,14 +88,14 @@ class API:  # pylint: disable=too-many-instance-attributes
         method: str,
         returns: str,
         url: str,
-        websession: ClientSession = None,
-        headers: dict = None,
-        params: dict = None,
-        data: dict = None,
-        json: dict = None,
+        websession: Optional[ClientSession] = None,
+        headers: Optional[Dict[Any, Any]] = None,
+        params: Optional[Dict[Any, Any]] = None,
+        data: Optional[Dict[Any, Any]] = None,
+        json: Optional[Dict[Any, Any]] = None,
         allow_redirects: bool = True,
         login_request: bool = False,
-    ) -> Tuple[ClientResponse, Union[dict, str, None]]:
+    ) -> Tuple[ClientResponse, Union[Dict[Any, Any], str, None]]:
         """Make a request."""
 
         # Determine the method to call based on what is to be returned.
@@ -147,7 +155,7 @@ class API:  # pylint: disable=too-many-instance-attributes
             # Check if token has to be refreshed.
             if (
                 self._security_token[2] is None
-                or self._security_token[2] <= datetime.utcnow()
+                or self._security_token[2] <= datetime.now(UTC)
             ):
                 # Token has to be refreshed, get authentication task if running otherwise start a new one.
                 if self._security_token[0] is None:
@@ -233,54 +241,75 @@ class API:  # pylint: disable=too-many-instance-attributes
                 _LOGGER.debug(message)
                 raise RequestError(message)
 
-    async def _api_authenticate(self) -> Tuple[str, int]:
-
+    async def _api_authenticate(self) -> Tuple[str, str, int]:
+        """Authenticate using AWS Cognito."""
         async with ClientSession() as session:
-            # Perform login to Snoo
-            data = {
-                "username": self.username,
-                "password": self.__credentials.get("password")
-            }
-            _LOGGER.debug("Performing login to Snoo")
-            resp, data = await self.request(
-                method="post",
-                returns="json",
-                url=f"{BASE_ENDPOINT}{LOGIN_URI}",
-                websession=session,
-                headers = {
-                  'Accept': '*/*',
-                  'Content-Type': 'application/json',
-                  'User-Agent': 'SNOO/2.4.0 (com.happiestbaby.snooapp;) Alamofire/5.3.0',
+            # Cognito InitiateAuth request
+            auth_request = {
+                "AuthParameters": {
+                    "PASSWORD": self.__credentials.get("password"),
+                    "USERNAME": self.username
                 },
-                data = json.dumps(data),
-                login_request=True,
-            )
+                "AuthFlow": "USER_PASSWORD_AUTH",
+                "ClientId": COGNITO_CLIENT_ID
+            }
 
-            # Retrieve token
-            _LOGGER.debug("Getting token")
-            token = f"{data.get('token_type')} {data.get('access_token')}"
-            refresh_token = data.get('refresh_token')
+            headers = {
+                'Content-Type': 'application/x-amz-json-1.1',
+                'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
+                'User-Agent': 'Happiest Baby/2.6.1 (com.happiestbaby.hbapp; build:114; iOS 18.5.0) Alamofire/5.9.1'
+            }
+
+            _LOGGER.debug("Performing Cognito authentication")
+
             try:
-                expires = int(data.get("expires_in", DEFAULT_TOKEN_REFRESH))
-            except ValueError:
-                _LOGGER.debug(
-                    f"Expires {data.get('expires_in')} received is not an integer, using default."
-                )
-                expires = DEFAULT_TOKEN_REFRESH * 2
+                async with session.post(
+                    COGNITO_ENDPOINT,
+                    json=auth_request,
+                    headers=headers
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        raise RequestError(f"Cognito authentication failed: {resp.status} - {error_text}")
 
-        if expires < DEFAULT_TOKEN_REFRESH * 2:
-            _LOGGER.debug(
-                f"Expires {expires} is less then default {DEFAULT_TOKEN_REFRESH}, setting to default instead."
-            )
-            expires = DEFAULT_TOKEN_REFRESH * 2
+                    # AWS Cognito returns application/x-amz-json-1.1
+                    text = await resp.text()
+                    data = json.loads(text)
 
-        return token, refresh_token, expires
+                    if 'AuthenticationResult' not in data:
+                        raise AuthenticationError("No AuthenticationResult in Cognito response")
+
+                    auth_result = data['AuthenticationResult']
+
+                    # Extract tokens - Use IdToken for API authorization, not AccessToken
+                    id_token = auth_result.get('IdToken')
+                    # access_token = auth_result.get('AccessToken')  # Not used
+                    refresh_token = auth_result.get('RefreshToken')
+                    expires_in = auth_result.get('ExpiresIn', DEFAULT_TOKEN_REFRESH)
+                    token_type = auth_result.get('TokenType', 'Bearer')
+
+                    if not id_token:
+                        raise AuthenticationError("No ID token received from Cognito")
+
+                    _LOGGER.debug(f"Received Cognito IdToken that will expire in {expires_in} seconds")
+
+                    # Return in format expected by calling code - use IdToken for API calls
+                    token = f"{token_type} {id_token}"
+                    return token, refresh_token, expires_in
+            except ClientResponseError as err:
+                message = f"Error during Cognito authentication: {err.status} - {err.message}"
+                _LOGGER.debug(message)
+                raise RequestError(message)
+            except ClientError as err:
+                message = f"Network error during Cognito authentication: {str(err)}"
+                _LOGGER.debug(message)
+                raise RequestError(message)
 
     async def _authenticate(self) -> None:
         # Retrieve and store the initial security token:
         _LOGGER.debug("Initiating authentication")
 
-        if self._security_token[2] is not None and self._security_token[2] < datetime.utcnow():
+        if self._security_token[2] is not None and self._security_token[2] < datetime.now(UTC):
             # try to get a new access_token with the stored refresh_token
             token, refresh_token, expires = await self._refresh_token()
             return
@@ -298,7 +327,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         self._security_token = (
             token,
             refresh_token,
-            datetime.utcnow() + timedelta(seconds=int(expires / 2)),
+            datetime.now(UTC) + timedelta(seconds=int(expires / 2)),
             datetime.now(),
         )
 
@@ -317,12 +346,12 @@ class API:  # pylint: disable=too-many-instance-attributes
                 returns="json",
                 url=f"{BASE_ENDPOINT}{REFRESH_URI}",
                 websession=session,
-                headers = {
-                  'Accept': '*/*',
-                  'Content-Type': 'application/json',
-                  'User-Agent': 'SNOO/2.4.0 (com.happiestbaby.snooapp;) Alamofire/5.3.0',
+                headers={
+                    'Accept': '*/*',
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'SNOO/2.4.0 (com.happiestbaby.snooapp;) Alamofire/5.3.0',
                 },
-                data = json.dumps(data),
+                data=json.dumps(data),
                 login_request=True,
             )
 
@@ -396,7 +425,7 @@ class API:  # pylint: disable=too-many-instance-attributes
                 )
                 account = accounts_resp
         else:
-            _LOGGER.debug(f"No accounts found")
+            _LOGGER.debug("No accounts found")
 
         return account
 
@@ -410,7 +439,7 @@ class API:  # pylint: disable=too-many-instance-attributes
             url=f"{BASE_ENDPOINT}{DEVICES_URI}",
         )
 
-        device_state_update_timestmp = datetime.utcnow()
+        device_state_update_timestmp = datetime.now(UTC)
         if devices_resp is not None:
             for device_json in devices_resp:
                 serial_number = device_json.get("serialNumber")
@@ -453,7 +482,7 @@ class API:  # pylint: disable=too-many-instance-attributes
 
     async def _add_new_device(self, device_json):
         serial_number = device_json.get("serialNumber")
-        # device_state_update_timestmp = datetime.utcnow()
+        # device_state_update_timestmp = datetime.now(UTC)
         _LOGGER.debug(
             f"Adding new Snoo with serial number {serial_number}"
         )
@@ -479,12 +508,32 @@ class API:  # pylint: disable=too-many-instance-attributes
         )
 
         if baby_resp is not None:
-          baby = baby_resp
+            baby = baby_resp
         else:
             _LOGGER.debug(
                 f"No baby found for account {self.account['givenName']}"
             )
         return baby
+
+    async def get_babies_v10(self) -> Optional[List[Dict]]:
+        """Get babies using v10 API endpoint."""
+        _LOGGER.debug("Retrieving babies using v10 API")
+        _, babies_resp = await self.request(
+            method="get",
+            returns="json",
+            url=f"{BASE_ENDPOINT}{BABIES_URI}",
+        )
+        return babies_resp
+
+    async def get_account_v10(self) -> Optional[Dict]:
+        """Get account info using v10 API endpoint."""
+        _LOGGER.debug("Retrieving account using v10 API")
+        _, account_resp = await self.request(
+            method="get",
+            returns="json",
+            url=f"{BASE_ENDPOINT}{ACCOUNT_V10_URI}",
+        )
+        return account_resp
 
     async def get_session_for_account(self) -> Dict:
         # Session information is for the account, not specific to a device for some reason.
@@ -498,7 +547,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         )
 
         if session_resp is not None:
-          session = session_resp
+            session = session_resp
         else:
             _LOGGER.debug(
                 f"No session found for account {self.account['givenName']}"
@@ -516,7 +565,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         params = {
             "detailedLevels": str(detailedLevels).lower(),
             "levels": str(levels).lower(),
-            "startTime": startTime.isoformat()[:-3]+'Z'     # e.g. "2021-02-04T08:00:00.000Z"
+            "startTime": startTime.isoformat()[:-3] + 'Z'     # e.g. "2021-02-04T08:00:00.000Z"
         }
 
         _LOGGER.debug(f"PARAMS {params}")
@@ -530,7 +579,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         )
 
         if session_stats_daily_resp is not None:
-          session_stats_daily = session_stats_daily_resp
+            session_stats_daily = session_stats_daily_resp
         else:
             _LOGGER.debug(
                 f"No session stats found for account {self.account['givenName']} with startTime {startTime}"
@@ -548,7 +597,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         params = {
             "days": str(days).lower(),
             "interval": interval,
-            "startTime": startTime.isoformat()[:-3]+'Z'     # e.g. "2021-02-04T08:00:00.000Z"
+            "startTime": startTime.isoformat()[:-3] + 'Z'     # e.g. "2021-02-04T08:00:00.000Z"
         }
 
         session_stats_avg = None
@@ -560,7 +609,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         )
 
         if session_stats_avg_resp is not None:
-          session_stats_avg = session_stats_avg_resp
+            session_stats_avg = session_stats_avg_resp
         else:
             _LOGGER.debug(
                 f"No session stats found for account {self.account['givenName']} with startTime {startTime}"
@@ -577,7 +626,7 @@ class API:  # pylint: disable=too-many-instance-attributes
             url=f"{BASE_ENDPOINT}{DEVICE_CONFIGS_URI.format(serial_number=serial_number)}",
         )
 
-        # config_update_timestmp = datetime.utcnow()
+        # config_update_timestmp = datetime.now(UTC)
         if configs_resp is not None:
             _LOGGER.debug(
                 f"Updated config information for device with serial number {serial_number}"
@@ -588,13 +637,57 @@ class API:  # pylint: disable=too-many-instance-attributes
 
         return configs_resp
 
+    async def get_devices_v11(self) -> Optional[List[Dict]]:
+        """Get devices using v11 API endpoint."""
+        _LOGGER.debug("Retrieving devices using v11 API")
+        _, devices_resp = await self.request(
+            method="get",
+            returns="json",
+            url=f"{BASE_ENDPOINT}{DEVICES_V11_URI}",
+        )
+        return devices_resp
+
+    async def get_session_last_v10(self, baby_id: str) -> Optional[Dict]:
+        """Get last session using v10 API endpoint."""
+        _LOGGER.debug(f"Retrieving last session for baby {baby_id} using v10 API")
+        _, session_resp = await self.request(
+            method="get",
+            returns="json",
+            url=f"{BASE_ENDPOINT}{SESSION_LAST_V10_URI.format(baby_id=baby_id)}",
+        )
+        return session_resp
+
+    async def get_session_daily_v11(
+        self,
+        baby_id: str,
+        start_time: datetime,
+        timezone: str = "America/New_York",
+        detailed_levels: bool = True,
+        levels: bool = True
+    ) -> Optional[Dict]:
+        """Get daily session data using v11 API endpoint."""
+        params = {
+            "detailedLevels": str(detailed_levels).lower(),
+            "levels": str(levels).lower(),
+            "startTime": start_time.strftime("%Y-%m-%d %H:%M:%S.000"),
+            "timezone": timezone
+        }
+
+        _LOGGER.debug(f"Retrieving daily session for baby {baby_id} using v11 API")
+        _, session_resp = await self.request(
+            method="get",
+            returns="json",
+            url=f"{BASE_ENDPOINT}{SESSION_DAILY_V11_URI.format(baby_id=baby_id)}",
+            params=params
+        )
+        return session_resp
 
     async def update_device_info(self) -> None:
         """Get up-to-date device info."""
         # if back-to-back requests occur within a threshold, respond to only the first
         # Ensure only 1 update task can run at a time.
         async with self._update:
-            call_dt = datetime.utcnow()
+            call_dt = datetime.now(UTC)
             if not self.last_state_update:
                 self.last_state_update = call_dt - DEFAULT_DEVICE_UPDATE_INTERVAL
             next_available_call_dt = (
@@ -619,14 +712,14 @@ class API:  # pylint: disable=too-many-instance-attributes
 
             await self._get_device_details()
             if self.devices is None:
-                _LOGGER.debug(f"No devices found")
+                _LOGGER.debug("No devices found")
                 self.devices = {}
 
             # Update our last update timestamp UNLESS this is for a specific account
-            self.last_state_update = datetime.utcnow()
+            self.last_state_update = datetime.now(UTC)
 
 
-async def login(username: str, password: str, websession: ClientSession = None) -> API:
+async def login(username: str, password: str, websession: Optional[ClientSession] = None) -> API:
     """Log in to the API."""
 
     # Set the user agent in the headers.
@@ -636,7 +729,7 @@ async def login(username: str, password: str, websession: ClientSession = None) 
         await api.authenticate(wait=True)
     except InvalidCredentialsError as err:
         _LOGGER.error(
-            f"Username and/or password are invalid. Update username/password."
+"Username and/or password are invalid. Update username/password."
         )
         raise err
     except AuthenticationError as err:
